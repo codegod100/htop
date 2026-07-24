@@ -54,3 +54,8 @@ callgrind.out.*
 
 # Language Servers
 /.cache/clangd/
+
+# Nix
+/result
+/result-*
+
