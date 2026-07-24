@@ -51,6 +51,7 @@ static void Settings_deleteScreens(Settings* this) {
 void Settings_delete(Settings* this) {
    free(this->filename);
    free(this->initialFilename);
+   free(this->themeName);
    Settings_deleteColumns(this);
    Settings_deleteScreens(this);
    free(this);
@@ -496,6 +497,9 @@ static bool Settings_read(Settings* this, const char* fileName, const Machine* h
          if (this->colorScheme < 0 || this->colorScheme >= LAST_COLORSCHEME) {
             this->colorScheme = 0;
          }
+      } else if (String_eq(option[0], "theme_name") || String_eq(option[0], "theme")) {
+         free(this->themeName);
+         this->themeName = (option[1][0] != '\0') ? xStrdup(option[1]) : NULL;
       #ifdef HAVE_GETMOUSE
       } else if (String_eq(option[0], "enable_mouse")) {
          this->enableMouse = atoi(option[1]);
@@ -725,6 +729,8 @@ int Settings_write(const Settings* this, bool onCrash) {
    printSettingInteger("update_process_names", this->updateProcessNames);
    printSettingInteger("account_guest_in_cpu_meter", this->accountGuestInCPUMeter);
    printSettingInteger("color_scheme", this->colorScheme);
+   if (this->themeName && this->themeName[0])
+      printSettingString("theme_name", this->themeName);
    #ifdef HAVE_GETMOUSE
    printSettingInteger("enable_mouse", this->enableMouse);
    #endif
@@ -882,6 +888,7 @@ Settings* Settings_new(const Machine* host, Hashtable* dynamicMeters, Hashtable*
       free_and_xStrdup(&this->filename, this->initialFilename);
 
    this->colorScheme = 0;
+   this->themeName = NULL;
 #ifdef HAVE_GETMOUSE
    this->enableMouse = true;
 #endif

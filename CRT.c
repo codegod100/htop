@@ -24,6 +24,7 @@ in the source distribution for its full text.
 #include "CommandLine.h"
 #include "ProvideCurses.h"
 #include "ProvideTerm.h"
+#include "Theme.h"
 #include "XUtils.h"
 
 #if !defined(NDEBUG) && defined(HAVE_MEMFD_CREATE)
@@ -123,7 +124,11 @@ static void initDegreeSign(void) {
    return;
 }
 
-const int* CRT_colors;
+static int CRT_activeColors[LAST_COLORELEMENT];
+const int* CRT_colors = CRT_activeColors;
+
+static bool CRT_forceBlackBg = false;
+bool CRT_usingFileTheme = false;
 
 static int CRT_colorSchemes[LAST_COLORSCHEME][LAST_COLORELEMENT] = {
    [COLORSCHEME_DEFAULT] = {
@@ -957,6 +962,12 @@ int CRT_scrollWheelVAmount = 10;
 
 ColorScheme CRT_colorScheme = COLORSCHEME_DEFAULT;
 
+const int* CRT_getColorScheme(ColorScheme colorScheme) {
+   if (colorScheme < 0 || colorScheme >= LAST_COLORSCHEME)
+      colorScheme = COLORSCHEME_DEFAULT;
+   return CRT_colorSchemes[colorScheme];
+}
+
 ATTR_NORETURN
 static void CRT_handleSIGTERM(int sgn) {
    CRT_done();
@@ -1273,7 +1284,14 @@ IGNORE_WCASTQUAL_END
 
    use_default_colors();
 
-   CRT_setColors(has_colors() ? settings->colorScheme : COLORSCHEME_MONOCHROME);
+   if (!has_colors()) {
+      CRT_setColors(COLORSCHEME_MONOCHROME);
+   } else if (settings->themeName && settings->themeName[0] &&
+              CRT_setThemeById(settings->themeName)) {
+      /* file theme applied */
+   } else {
+      CRT_setColors(settings->colorScheme);
+   }
 
 #ifdef HAVE_LIBNCURSESW
    if (allowUnicode && String_eq(nl_langinfo(CODESET), "UTF-8")) {
@@ -1340,29 +1358,60 @@ void CRT_enableDelay(void) {
    halfdelay(CRT_settings->delay);
 }
 
-void CRT_setColors(int colorScheme) {
-   if (colorScheme >= LAST_COLORSCHEME || colorScheme < 0) {
-      colorScheme = COLORSCHEME_DEFAULT;
-   }
-
-   CRT_colorScheme = colorScheme;
+static void CRT_initColorPairs(bool forceBlackBg) {
+   CRT_forceBlackBg = forceBlackBg;
 
    for (short int i = 0; i < 8; i++) {
       for (short int j = 0; j < 8; j++) {
          if (ColorIndex(i, j) != ColorIndexGrayBlack && ColorIndex(i, j) != ColorIndexWhiteDefault) {
-            short int bg = (colorScheme != COLORSCHEME_BLACKNIGHT) && (j == 0) ? -1 : j;
+            short int bg = !forceBlackBg && (j == 0) ? -1 : j;
             init_pair(ColorIndex(i, j), i, bg);
          }
       }
    }
 
    short int grayBlackFg = COLORS > 8 ? 8 : 0;
-   short int grayBlackBg = (colorScheme != COLORSCHEME_BLACKNIGHT) ? -1 : 0;
+   short int grayBlackBg = forceBlackBg ? 0 : -1;
    init_pair(ColorIndexGrayBlack, grayBlackFg, grayBlackBg);
 
    init_pair(ColorIndexWhiteDefault, White, -1);
+}
 
-   CRT_colors = CRT_colorSchemes[colorScheme];
+void CRT_setColorTable(const int table[LAST_COLORELEMENT], bool forceBlackBg) {
+   memcpy(CRT_activeColors, table, sizeof(CRT_activeColors));
+   CRT_colors = CRT_activeColors;
+   CRT_initColorPairs(forceBlackBg);
+}
+
+void CRT_setColors(int colorScheme) {
+   if (colorScheme >= LAST_COLORSCHEME || colorScheme < 0) {
+      colorScheme = COLORSCHEME_DEFAULT;
+   }
+
+   CRT_colorScheme = colorScheme;
+   CRT_usingFileTheme = false;
+
+   bool forceBlackBg = (colorScheme == COLORSCHEME_BLACKNIGHT);
+   CRT_setColorTable(CRT_colorSchemes[colorScheme], forceBlackBg);
+}
+
+bool CRT_setThemeById(const char* themeId) {
+   if (!themeId || !themeId[0])
+      return false;
+
+   int table[LAST_COLORELEMENT];
+   bool forceBlackBg = false;
+   if (!Theme_loadById(themeId, table, &forceBlackBg))
+      return false;
+
+   CRT_usingFileTheme = true;
+   /* Keep colorScheme as a non-monochrome built-in so monochrome special
+    * cases do not kick in while a file theme is active. */
+   if (CRT_colorScheme == COLORSCHEME_MONOCHROME)
+      CRT_colorScheme = COLORSCHEME_DEFAULT;
+
+   CRT_setColorTable(table, forceBlackBg);
+   return true;
 }
 
 #ifdef PRINT_BACKTRACE

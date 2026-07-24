@@ -72,6 +72,7 @@ typedef struct Settings_ {
    ScreenSettings* ss;
 
    int colorScheme;
+   char* themeName; /* file theme id (basename without .theme); NULL uses colorScheme */
    int delay;
 
    bool countCPUsFromOne;

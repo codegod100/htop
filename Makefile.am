@@ -24,8 +24,17 @@ pixmap_DATA = htop.png
 appicondir = $(datadir)/icons/hicolor/scalable/apps
 appicon_DATA = htop.svg
 
-AM_CFLAGS += -DSYSCONFDIR="\"$(sysconfdir)\"" -I"$(top_srcdir)/$(my_htop_platform)"
+AM_CFLAGS += -DSYSCONFDIR="\"$(sysconfdir)\"" -DHTOP_DATADIR="\"$(datadir)/htop\"" -I"$(top_srcdir)/$(my_htop_platform)"
 AM_LDFLAGS =
+
+themesdir = $(datadir)/htop/themes
+dist_themes_DATA = \
+	themes/dracula.theme \
+	themes/gruvbox-dark.theme \
+	themes/catppuccin-mocha.theme \
+	themes/solarized-dark.theme \
+	themes/tokyo-night.theme \
+	themes/README
 
 myhtopsources = \
 	Action.c \
@@ -86,6 +95,7 @@ myhtopsources = \
 	SysArchMeter.c \
 	Table.c \
 	TasksMeter.c \
+	Theme.c \
 	TraceScreen.c \
 	UptimeMeter.c \
 	UsersTable.c \
@@ -159,6 +169,7 @@ myhtopheaders = \
 	SysArchMeter.h \
 	Table.h \
 	TasksMeter.h \
+	Theme.h \
 	TraceScreen.h \
 	UptimeMeter.h \
 	UsersTable.h \

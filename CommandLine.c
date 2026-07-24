@@ -59,7 +59,8 @@ static void printHelpFlag(const char* name) {
           "-F --filter=FILTER              Show only the commands matching the given filter\n"
           "   --no-function-bar            Hide the function bar\n"
           "-h --help                       Print this help screen\n"
-          "-H --highlight-changes[=DELAY]  Highlight new and old processes\n", name);
+          "-H --highlight-changes[=DELAY]  Highlight new and old processes\n"
+          "   --theme=NAME                 Use a color theme (built-in or file theme id)\n", name);
 #ifdef HAVE_GETMOUSE
    printf("-M --no-mouse                   Disable the mouse\n");
 #endif
@@ -83,6 +84,7 @@ static void printHelpFlag(const char* name) {
 typedef struct CommandLineSettings_ {
    Hashtable* pidMatchList;
    char* commFilter;
+   char* themeName;
    uid_t userId;
    int sortKey;
    int delay;
@@ -125,6 +127,7 @@ static CommandLineStatus parseArguments(int argc, char** argv, CommandLineSettin
    *flags = (CommandLineSettings) {
       .pidMatchList = NULL,
       .commFilter = NULL,
+      .themeName = NULL,
       .userId = (uid_t)-1, // -1 is guaranteed to be an invalid uid_t (see setreuid(2))
       .sortKey = 0,
       .delay = -1,
@@ -171,6 +174,7 @@ static CommandLineStatus parseArguments(int argc, char** argv, CommandLineSettin
       {"no-function-bar", no_argument,    0, 130},
       {"highlight-changes", optional_argument, 0, 'H'},
       {"readonly",   no_argument,         0, 128},
+      {"theme",      required_argument,   0, 131},
       PLATFORM_LONG_OPTIONS
       {0, 0, 0, 0}
    };
@@ -277,6 +281,13 @@ static CommandLineStatus parseArguments(int argc, char** argv, CommandLineSettin
             break;
          case 129:
             flags->hideMeters = true;
+            break;
+         case 131:
+            if (!optarg || !optarg[0]) {
+               fprintf(stderr, "Error: --theme requires a theme name.\n");
+               return STATUS_ERROR_EXIT;
+            }
+            free_and_xStrdup(&flags->themeName, optarg);
             break;
          case 't':
             if (!optarg && optind < argc &&
@@ -416,11 +427,17 @@ int CommandLine_run(int argc, char** argv) {
    Header_populateFromSettings(header);
 
    int colorSchemeFromConfig = settings->colorScheme;
+   char* themeNameFromConfig = settings->themeName ? xStrdup(settings->themeName) : NULL;
 
    if (flags.delay != -1)
       settings->delay = flags.delay;
-   if (!flags.useColors)
+   if (!flags.useColors) {
       settings->colorScheme = COLORSCHEME_MONOCHROME;
+      free(settings->themeName);
+      settings->themeName = NULL;
+   } else if (flags.themeName) {
+      free_and_xStrdup(&settings->themeName, flags.themeName);
+   }
 #ifdef HAVE_GETMOUSE
    if (!flags.enableMouse)
       settings->enableMouse = false;
@@ -447,11 +464,14 @@ int CommandLine_run(int argc, char** argv) {
    host->iterationsRemaining = flags.iterationsRemaining;
    CRT_init(settings, flags.allowUnicode, flags.iterationsRemaining != -1);
 
-   // Do not save the color scheme override to 'htoprc'.
-   // 'settings' will keep the original color scheme until the user
-   // changes it in the Setup.
+   // Do not save CLI color/theme overrides to 'htoprc'.
+   // 'settings' will keep the original values until the user
+   // changes them in the Setup.
    // ('CRT_colorScheme' holds the current, active color scheme.)
    settings->colorScheme = colorSchemeFromConfig;
+   free(settings->themeName);
+   settings->themeName = themeNameFromConfig;
+   free(flags.themeName);
 
    MainPanel* panel = MainPanel_new();
    Machine_setTablesPanel(host, (Panel*) panel);

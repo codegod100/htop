@@ -1,0 +1,45 @@
+htop color themes
+=================
+
+Theme files (*.theme) let you customize htop colors without recompiling.
+
+Search order (later entries override earlier ones with the same id):
+  1. $HTOP_DATADIR/themes/          (packaged themes, usually $prefix/share/htop/themes)
+  2. $SYSCONFDIR/htop/themes/       (system-wide, e.g. /etc/htop/themes)
+  3. $XDG_CONFIG_HOME/htop/themes/  or  ~/.config/htop/themes/
+  4. $HTOP_THEME_DIR/               (developer override)
+
+Select a theme in Setup (F2) → Colors, or set in ~/.config/htop/htoprc:
+
+  theme_name=dracula
+
+Or from the command line:
+
+  htop --theme=dracula
+
+File format
+-----------
+
+  # comments start with # or ;
+  name=Display Name
+  force_black_bg=0
+
+  # ELEMENT = foreground background [attributes...]
+  DEFAULT_COLOR = white default
+  PROCESS_BASENAME = cyan default bold
+  FUNCTION_BAR = black cyan
+
+Colors: black red green yellow blue magenta cyan white gray default
+  (purple is an alias for magenta; grey is an alias for gray)
+
+Attributes: bold reverse dim underline normal blink
+
+Attribute-only values are also allowed:
+
+  BAR_BORDER = bold
+  PROCESS = normal
+
+Unknown element names are ignored so themes stay forward-compatible.
+Missing elements inherit the built-in Default scheme.
+
+The theme id used in htoprc is the filename without the .theme suffix.

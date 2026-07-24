@@ -212,6 +212,9 @@ extern int CRT_scrollWheelVAmount;
 
 extern ColorScheme CRT_colorScheme;
 
+/* True when the active palette came from a file theme rather than a built-in scheme. */
+extern bool CRT_usingFileTheme;
+
 #ifdef HAVE_GETMOUSE
 void CRT_setMouse(bool enabled);
 #else
@@ -235,5 +238,14 @@ static inline void CRT_updateDelay(void) {
 }
 
 void CRT_setColors(int colorScheme);
+
+/* Apply a complete color table (from a built-in scheme or loaded theme file). */
+void CRT_setColorTable(const int table[LAST_COLORELEMENT], bool forceBlackBg);
+
+/* Pointer to a built-in scheme table (valid for the process lifetime). */
+const int* CRT_getColorScheme(ColorScheme colorScheme);
+
+/* Load and apply a theme by id (basename without .theme). Returns false on failure. */
+bool CRT_setThemeById(const char* themeId);
 
 #endif

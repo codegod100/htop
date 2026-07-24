@@ -67,6 +67,15 @@ Sort by this column (use \-\-sort\-key help for a column list).
 This will force a list view unless you specify -t at the same time.
 Sorting in tree mode applies to the direct children of each process.
 .TP
+\fB\-\-theme=NAME\fR
+Use the named color theme. Built-in schemes are selected from Setup (F2) → Colors.
+File themes are loaded by id (filename without the
+.B .theme
+suffix) from the theme directories described under
+.BR "CONFIG FILES" .
+This option is not written to
+.IR htoprc .
+.TP
 \fB\-u \-\-user[=USERNAME|UID]\fR
 Show only the processes of a given user, or self if omitted
 .TP
@@ -692,6 +701,32 @@ and as a last resort, falls back to its hard coded defaults.
 You may override the location of the configuration file using the $HTOPRC
 environment variable (so you can have multiple configurations for different
 machines that share the same home directory, for example).
+.LP
+Color themes may be supplied as
+.B *.theme
+files. They are searched in this order (later directories override earlier ones
+with the same theme id):
+.IP \(bu 2
+.I @datadir@/htop/themes/
+(packaged themes)
+.IP \(bu 2
+.I @sysconfdir@/htop/themes/
+(system-wide)
+.IP \(bu 2
+.I ~/.config/htop/themes/
+(or
+.IR $XDG_CONFIG_HOME/htop/themes/ )
+.IP \(bu 2
+.I $HTOP_THEME_DIR/
+(developer override)
+.LP
+Select a theme from Setup (F2) → Colors, or set
+.B theme_name=\fIid\fR
+in
+.IR htoprc .
+See
+.I @datadir@/htop/themes/README
+for the theme file format.
 .LP
 The
 .B pcp-htop
